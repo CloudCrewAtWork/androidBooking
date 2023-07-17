@@ -32,10 +32,10 @@
               "client_type": 3
             },
             {
-              "client_id": "20852769003-8lb8g6r77qtcrf43fbri5kruf9fb9rnh.apps.googleusercontent.com",
+              "client_id": "20852769003-1khpkb9pp73pr7ji3udl8m720c9o4m09.apps.googleusercontent.com",
               "client_type": 2,
               "ios_info": {
-                "bundle_id": "COM.ANURAG.AuthorizerBooking"
+                "bundle_id": "COM.ANURAG.Booking"
               }
             }
           ]
