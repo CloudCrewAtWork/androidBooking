@@ -10,6 +10,9 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.ListView;
+import android.widget.RadioButton;
+import android.widget.RadioGroup;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -26,6 +29,10 @@ import com.google.firebase.firestore.QuerySnapshot;
 import com.google.firebase.firestore.SetOptions;
 
 import org.w3c.dom.Document;
+
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.List;
 
 public class FinalViewActivity extends AppCompatActivity {
     FirebaseFirestore db = FirebaseFirestore.getInstance();
@@ -148,34 +155,99 @@ public class FinalViewActivity extends AppCompatActivity {
         Log.println(Log.INFO, "Email", email);
         Log.println(Log.INFO, "User ID", userId);
 
-        // Query the "Slots" collection for the current user's ID
-        db.collection("Slots")
-                .document(userId)
-                .get()
-                .addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
-                    @Override
-                    public void onComplete(@NonNull Task<DocumentSnapshot> task) {
-                        if (task.isSuccessful()) {
-                            DocumentSnapshot document = task.getResult();
-                            if (document.exists()) {
-                                // The user already has a slot, show AlertDialog with delete option
-                                showDeleteSlotAlertDialog(userId);
-                            } else {
-                                // The user doesn't have a slot, create a new one
-                                createNewSlot(userId, email);
-                            }
-                        } else {
-                            Log.d("checkSlot", "Error getting document: ", task.getException());
-                        }
-                    }
-                });
+        // Get the current time in hours (24-hour format)
+        Calendar calendar = Calendar.getInstance();
+        int currentHour = calendar.get(Calendar.HOUR_OF_DAY);
+
+        // Calculate the available slots from 9 am to 9 pm
+        final int availableSlots = 12; // 12 slots from 9 am to 9 pm
+        int startingHour = 9;
+        int availableHourSlots = Math.max(availableSlots - (currentHour - startingHour), 0);
+
+        if (availableHourSlots == 0) {
+            Toast.makeText(this, "All slots have been booked for today.", Toast.LENGTH_SHORT).show();
+        } else {
+            // Show AlertDialog with available slots
+            showAvailableSlotsAlertDialog(userId, email, availableHourSlots, startingHour);
+        }
     }
 
-    // Function to show AlertDialog with delete option
-    private void showDeleteSlotAlertDialog(String userId) {
+    private void showAvailableSlotsAlertDialog(String userId, String email, int availableSlots, int startingHour) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Available Slots");
+
+        // Inflate the custom layout
+        View view = getLayoutInflater().inflate(R.layout.layout_available_slots, null);
+        builder.setView(view);
+
+        // Find the RadioGroup in the custom layout
+        RadioGroup slotRadioGroup = view.findViewById(R.id.slotRadioGroup);
+
+        // Generate the list of available slots and add radio buttons to the RadioGroup
+        for (int i = 0; i < availableSlots; i++) {
+            String slotText = String.format("%02d:00 - %02d:00", startingHour + i, startingHour + i + 1);
+            RadioButton radioButton = new RadioButton(this);
+            radioButton.setText(slotText);
+            radioButton.setTag(startingHour + i); // Set the tag to store the hour value
+            slotRadioGroup.addView(radioButton);
+        }
+
+        builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                // Get the selected radio button from the RadioGroup
+                int selectedRadioButtonId = slotRadioGroup.getCheckedRadioButtonId();
+                if (selectedRadioButtonId != -1) {
+                    // Retrieve the selected hour from the radio button's tag
+                    int selectedHour = (int) slotRadioGroup.findViewById(selectedRadioButtonId).getTag();
+                    String slotTime = String.format("%02d:00 - %02d:00", selectedHour, selectedHour + 1);
+
+                    // Check if the user already has a slot booked
+                    db.collection("Slots")
+                            .document(userId)
+                            .get()
+                            .addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
+                                @Override
+                                public void onComplete(@NonNull Task<DocumentSnapshot> task) {
+                                    if (task.isSuccessful()) {
+                                        DocumentSnapshot document = task.getResult();
+                                        if (document.exists()) {
+                                            // The user already has a slot, show the current slot timing and offer to delete
+                                            String existingSlotTime = document.getString("name");
+                                            AlertDialog.Builder builder = new AlertDialog.Builder(FinalViewActivity.this);
+                                            builder.setTitle("Slot Exists");
+                                            builder.setMessage("You already have a slot at " + existingSlotTime +
+                                                    ". Do you want to delete it ?");
+                                            builder.setPositiveButton("Delete", new DialogInterface.OnClickListener() {
+                                                @Override
+                                                public void onClick(DialogInterface dialog, int which) {
+                                                    // Call function to delete the existing slot and create a new one
+                                                    deleteSlot(userId);
+                                                }
+                                            });
+                                            builder.setNegativeButton("Cancel", null);
+                                            builder.show();
+                                        } else {
+                                            // The user doesn't have a slot, create a new one
+                                            createSlot(userId, email, slotTime);
+                                        }
+                                    } else {
+                                        Log.d("checkSlot", "Error getting document: ", task.getException());
+                                    }
+                                }
+                            });
+                }
+            }
+
+        });
+
+        builder.setNegativeButton("Cancel", null);
+        builder.show();
+    }
+    private void showDeleteSlotAlertDialog(String userId, String slotTime) {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Slot Exists");
-        builder.setMessage("You already have a slot. Do you want to delete it?");
+        builder.setMessage("You already have a slot at " + slotTime + ". Do you want to delete it?");
         builder.setPositiveButton("Delete", new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
@@ -186,29 +258,6 @@ public class FinalViewActivity extends AppCompatActivity {
         builder.setNegativeButton("Cancel", null);
         builder.show();
     }
-
-    // Function to create a new slot for the logged-in user
-    private void createNewSlot(String userId, String email) {
-        db.collection("Slots")
-                .document(userId)
-                .set(new Slot("hello", email, userId), SetOptions.merge())
-                .addOnSuccessListener(new OnSuccessListener<Void>() {
-                    @Override
-                    public void onSuccess(Void aVoid) {
-                        Log.d("createUser", "Document created successfully");
-                        Toast.makeText(FinalViewActivity.this, "Slot created successfully.", Toast.LENGTH_SHORT).show();
-                        showAlertMessage("Slot created successfully.");
-                    }
-                })
-                .addOnFailureListener(new OnFailureListener() {
-                    @Override
-                    public void onFailure(@NonNull Exception e) {
-                        Log.d("createUser", "Error creating document: ", e);
-                        Toast.makeText(FinalViewActivity.this, "Failed to create slot.", Toast.LENGTH_SHORT).show();
-                    }
-                });
-    }
-
     // Function to delete the slot for the logged-in user
     private void deleteSlot(String userId) {
         db.collection("Slots")
@@ -218,23 +267,76 @@ public class FinalViewActivity extends AppCompatActivity {
                     @Override
                     public void onSuccess(Void aVoid) {
                         Log.d("deleteSlot", "Slot deleted successfully");
-                        showAlertMessage("Slot deleted successfully");
+                        showAlertMessage("Slot deleted successfully.");
                         Toast.makeText(FinalViewActivity.this, "Slot deleted successfully.", Toast.LENGTH_SHORT).show();
                     }
                 })
                 .addOnFailureListener(new OnFailureListener() {
                     @Override
                     public void onFailure(@NonNull Exception e) {
-
+                        Log.d("deleteSlot", "Error deleting slot: ", e);
                         Toast.makeText(FinalViewActivity.this, "Failed to delete slot.", Toast.LENGTH_SHORT).show();
                     }
                 });
     }
 
+
+    private void createSlot(String userId, String email, String slotTime) {
+        db.collection("Slots")
+                .document(userId)
+                .get()
+                .addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
+                    @Override
+                    public void onComplete(@NonNull Task<DocumentSnapshot> task) {
+                        if (task.isSuccessful()) {
+                            DocumentSnapshot document = task.getResult();
+                            if (document.exists()) {
+                                // The user already has a slot, show AlertDialog with delete option
+                                showDeleteSlotAlertDialog(userId, slotTime);
+                            } else {
+                                // The user doesn't have a slot, create a new one
+                                db.collection("Slots")
+                                        .document(userId)
+                                        .set(new Slot(slotTime, email, userId), SetOptions.merge())
+                                        .addOnSuccessListener(new OnSuccessListener<Void>() {
+                                            @Override
+                                            public void onSuccess(Void aVoid) {
+                                                Log.d("createSlot", "Slot created successfully");
+                                                showAlertMessage("Slot created successfully.");
+                                                Toast.makeText(FinalViewActivity.this, "Slot created successfully.", Toast.LENGTH_SHORT).show();
+                                            }
+                                        })
+                                        .addOnFailureListener(new OnFailureListener() {
+                                            @Override
+                                            public void onFailure(@NonNull Exception e) {
+                                                Log.d("createSlot", "Error creating slot: ", e);
+                                                Toast.makeText(FinalViewActivity.this, "Failed to create slot.", Toast.LENGTH_SHORT).show();
+                                            }
+                                        });
+                            }
+                        } else {
+                            Log.d("checkSlot", "Error getting document: ", task.getException());
+                        }
+                    }
+                });
+    }
+
+
+    // Function to display alert message
+//    private void showAlertMessage(String message) {
+//        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+//        builder.setMessage(message);
+//        builder.setPositiveButton("OK", null);
+//        builder.show();
+//    }
+
+
     private void showAlertMessage(String message) {
         TextView alertTextView = findViewById(R.id.alertBox); // Replace "R.id.Alert" with the actual ID of your TextView
         alertTextView.setText(message);
     }
+
+
 
 
     public class Slot {
