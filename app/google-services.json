@@ -1,10 +1,4 @@
 {
-  "project_info": {
-    "project_number": "20852769003",
-    "firebase_url": "https://bookingapp-d730b.firebaseio.com",
-    "project_id": "bookingapp-d730b",
-    "storage_bucket": "bookingapp-d730b.appspot.com"
-  },
   "client": [
     {
       "client_info": {
@@ -43,5 +37,11 @@
       }
     }
   ],
-  "configuration_version": "1"
+  "configuration_version": "1",
+  "project_info": {
+    "project_number": "20852769003",
+    "firebase_url": "https://bookingapp-d730b.firebaseio.com",
+    "project_id": "bookingapp-d730b",
+    "storage_bucket": "bookingapp-d730b.appspot.com"
+  }
 }

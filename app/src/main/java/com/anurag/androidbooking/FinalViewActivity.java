@@ -12,8 +12,11 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
@@ -137,6 +140,10 @@ public class FinalViewActivity extends AppCompatActivity {
     }
 
     public void bookSlot(View view) {
+        String email = auth.getCurrentUser().getEmail();
+        String userId = auth.getCurrentUser().getUid();
+        Log.println(Log.INFO, "Email", email);
+        Log.println(Log.INFO, "User ID", userId);
         db.collection("Scheduler")
                 .get()
                 .addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
@@ -157,4 +164,58 @@ public class FinalViewActivity extends AppCompatActivity {
                     }
                 });
     }
+
+    public class Slot {
+        private String name;
+        private String email;
+        private String uniqueId;
+
+        public Slot(String name, String email, String uniqueId) {
+            this.name = name;
+            this.email = email;
+            this.uniqueId = uniqueId;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public String getEmail() {
+            return email;
+        }
+
+        public String getUniqueId() {
+            return uniqueId;
+        }
+    }
+
 }
+
+
+
+
+//    public void bookSlot(View view) {
+//        // Get the current user's email and ID
+//
+//
+//        // Create a new Schedule object with the user's email and ID
+//        Schedule schedule = new Schedule(email, userId);
+//
+//        // Save the Schedule object to the database
+//        db.collection("Schedule")
+//                .add(schedule)
+//                .addOnSuccessListener(new OnSuccessListener<DocumentReference>() {
+//                    @Override
+//                    public void onSuccess(DocumentReference documentReference) {
+//                        Log.d("TAG", "DocumentSnapshot added with ID: " + documentReference.getId());
+//                        Toast.makeText(FinalViewActivity.this, "Booking successful", Toast.LENGTH_SHORT).show();
+//                    }
+//                })
+//                .addOnFailureListener(new OnFailureListener() {
+//                    @Override
+//                    public void onFailure(@NonNull Exception e) {
+//                        Log.w("TAG", "Error adding document", e);
+//                        Toast.makeText(FinalViewActivity.this, "Booking failed", Toast.LENGTH_SHORT).show();
+//                    }
+//                });
+//    }

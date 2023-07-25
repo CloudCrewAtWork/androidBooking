@@ -6,7 +6,7 @@ import android.util.Log;
 import android.view.View;
 import android.widget.EditText;
 import androidx.appcompat.app.AppCompatActivity;
-import com.google.firebase.R;
+
 import com.google.firebase.firestore.FirebaseFirestore;
 
 
@@ -21,10 +21,10 @@ public class AdminLoginActivity extends AppCompatActivity {
     @SuppressLint("MissingSuperCall")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-//        super.onCreate(savedInstanceState);
-//        setContentView(R.layout.activity_admin_login);
-//        db = FirebaseFirestore.getInstance();
-//        adminEditText = findViewById(R.id.adminID);
+        super.onCreate(savedInstanceState);
+        setContentView(com.anurag.androidbooking.R.layout.activity_admin_login);
+        db = FirebaseFirestore.getInstance();
+        adminEditText = findViewById(R.id.adminID);
     }
 
     public void loginAdmin(View view) {

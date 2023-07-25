@@ -138,25 +138,39 @@ public class RegisterActivity extends AppCompatActivity {
     }
 
     private void createUser() {
-        Map<String, Object> newUser = new HashMap<>();
+//        Map<String, Object> newUser = new HashMap<>();
         User user = new User();
         user.setEmail(email);
         user.setName(name);
         user.setUniqueId(id);
-        newUser.put(user.getName(), user);
-        db.collection("Users").document(user.getName()).set(newUser)
-                .addOnSuccessListener(new OnSuccessListener<Void>() {
-                    @Override
-                    public void onSuccess(Void aVoid) {
-                        Log.d("createUser","User saved");
-                    }
-                })
-                .addOnFailureListener(new OnFailureListener() {
-                    @Override
-                    public void onFailure(@NonNull Exception e) {
-                        Log.d("createUser", "error creating user");
-                    }
-                });
+//        newUser.put(user.getName(), user);
+        db.collection("Users").document(name).set(user).addOnCompleteListener(new OnCompleteListener(){
+
+
+            @Override
+            public void onComplete(@NonNull Task task) {
+                Log.println(Log.INFO, "Insertion Completed",user.getName());
+
+            }
+        }).addOnFailureListener(new OnFailureListener() {
+            @Override
+            public void onFailure(@NonNull Exception e) {
+                Log.println(Log.INFO, "Failed to Upload the data", e.toString());
+            }
+        });
+//        .addOnSuccessListener(new OnCompleteListener<QuerySnapshot>(){
+//
+//                    @Override
+//                    public void onComplete(@NonNull Task<QuerySnapshot> task) {
+//
+//                    }
+//                })
+//                .addOnFailureListener(new OnFailureListener() {
+//                    @Override
+//                    public void onFailure(@NonNull Exception e) {
+//                        Log.d("createUser", "error creating user");
+//                    }
+//                });
     }
 
     private void register() {
