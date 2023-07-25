@@ -3,6 +3,8 @@ package com.anurag.androidbooking;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
@@ -156,29 +158,11 @@ public class FinalViewActivity extends AppCompatActivity {
                         if (task.isSuccessful()) {
                             DocumentSnapshot document = task.getResult();
                             if (document.exists()) {
-                                // The user already has a slot
-                                Toast.makeText(FinalViewActivity.this, "You already have a slot.", Toast.LENGTH_SHORT).show();
-                                showAlertMessage("You already have a slot.");
+                                // The user already has a slot, show AlertDialog with delete option
+                                showDeleteSlotAlertDialog(userId);
                             } else {
                                 // The user doesn't have a slot, create a new one
-                                db.collection("Slots")
-                                        .document(userId)
-                                        .set(new Slot("hello", email, userId), SetOptions.merge())
-                                        .addOnSuccessListener(new OnSuccessListener<Void>() {
-                                            @Override
-                                            public void onSuccess(Void aVoid) {
-                                                Log.d("createUser", "Document created successfully");
-                                                Toast.makeText(FinalViewActivity.this, "Slot created successfully.", Toast.LENGTH_SHORT).show();
-                                                showAlertMessage("Slot created successfully.");
-                                            }
-                                        })
-                                        .addOnFailureListener(new OnFailureListener() {
-                                            @Override
-                                            public void onFailure(@NonNull Exception e) {
-                                                Log.d("createUser", "Error creating document: ", e);
-                                                Toast.makeText(FinalViewActivity.this, "Failed to create slot.", Toast.LENGTH_SHORT).show();
-                                            }
-                                        });
+                                createNewSlot(userId, email);
                             }
                         } else {
                             Log.d("checkSlot", "Error getting document: ", task.getException());
@@ -186,7 +170,67 @@ public class FinalViewActivity extends AppCompatActivity {
                     }
                 });
     }
-    // Method to show the alert message in the "Alert" TextView
+
+    // Function to show AlertDialog with delete option
+    private void showDeleteSlotAlertDialog(String userId) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Slot Exists");
+        builder.setMessage("You already have a slot. Do you want to delete it?");
+        builder.setPositiveButton("Delete", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                // Call function to delete the slot
+                deleteSlot(userId);
+            }
+        });
+        builder.setNegativeButton("Cancel", null);
+        builder.show();
+    }
+
+    // Function to create a new slot for the logged-in user
+    private void createNewSlot(String userId, String email) {
+        db.collection("Slots")
+                .document(userId)
+                .set(new Slot("hello", email, userId), SetOptions.merge())
+                .addOnSuccessListener(new OnSuccessListener<Void>() {
+                    @Override
+                    public void onSuccess(Void aVoid) {
+                        Log.d("createUser", "Document created successfully");
+                        Toast.makeText(FinalViewActivity.this, "Slot created successfully.", Toast.LENGTH_SHORT).show();
+                        showAlertMessage("Slot created successfully.");
+                    }
+                })
+                .addOnFailureListener(new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception e) {
+                        Log.d("createUser", "Error creating document: ", e);
+                        Toast.makeText(FinalViewActivity.this, "Failed to create slot.", Toast.LENGTH_SHORT).show();
+                    }
+                });
+    }
+
+    // Function to delete the slot for the logged-in user
+    private void deleteSlot(String userId) {
+        db.collection("Slots")
+                .document(userId)
+                .delete()
+                .addOnSuccessListener(new OnSuccessListener<Void>() {
+                    @Override
+                    public void onSuccess(Void aVoid) {
+                        Log.d("deleteSlot", "Slot deleted successfully");
+                        showAlertMessage("Slot deleted successfully");
+                        Toast.makeText(FinalViewActivity.this, "Slot deleted successfully.", Toast.LENGTH_SHORT).show();
+                    }
+                })
+                .addOnFailureListener(new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception e) {
+
+                        Toast.makeText(FinalViewActivity.this, "Failed to delete slot.", Toast.LENGTH_SHORT).show();
+                    }
+                });
+    }
+
     private void showAlertMessage(String message) {
         TextView alertTextView = findViewById(R.id.alertBox); // Replace "R.id.Alert" with the actual ID of your TextView
         alertTextView.setText(message);
@@ -220,30 +264,3 @@ public class FinalViewActivity extends AppCompatActivity {
 }
 
 
-
-
-//    public void bookSlot(View view) {
-//        // Get the current user's email and ID
-//
-//
-//        // Create a new Schedule object with the user's email and ID
-//        Schedule schedule = new Schedule(email, userId);
-//
-//        // Save the Schedule object to the database
-//        db.collection("Schedule")
-//                .add(schedule)
-//                .addOnSuccessListener(new OnSuccessListener<DocumentReference>() {
-//                    @Override
-//                    public void onSuccess(DocumentReference documentReference) {
-//                        Log.d("TAG", "DocumentSnapshot added with ID: " + documentReference.getId());
-//                        Toast.makeText(FinalViewActivity.this, "Booking successful", Toast.LENGTH_SHORT).show();
-//                    }
-//                })
-//                .addOnFailureListener(new OnFailureListener() {
-//                    @Override
-//                    public void onFailure(@NonNull Exception e) {
-//                        Log.w("TAG", "Error adding document", e);
-//                        Toast.makeText(FinalViewActivity.this, "Booking failed", Toast.LENGTH_SHORT).show();
-//                    }
-//                });
-//    }
