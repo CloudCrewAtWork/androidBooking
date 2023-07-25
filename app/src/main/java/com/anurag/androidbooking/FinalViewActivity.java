@@ -21,6 +21,7 @@ import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.QuerySnapshot;
+import com.google.firebase.firestore.SetOptions;
 
 import org.w3c.dom.Document;
 
@@ -87,15 +88,15 @@ public class FinalViewActivity extends AppCompatActivity {
                                                                             Log.d("Limit reached","booked out");
                                                                             Toast.makeText(FinalViewActivity.this, "Already booked out", Toast.LENGTH_SHORT).show();
                                                                             alert.setText("Cafeteria booked out");
-                                                                            
+
                                                                         } else if (slotNumber != 0) {
                                                                             Log.d("Already","booked");
                                                                             Toast.makeText(FinalViewActivity.this, "You already booked", Toast.LENGTH_SHORT).show();
                                                                             alert.setText("Already booked");
-                                                                            
-                                                                            
+
+
                                                                         } else {
-                                                                            //available 
+                                                                            //available
                                                                             Toast.makeText(FinalViewActivity.this, "Booking available", Toast.LENGTH_SHORT).show();
                                                                             book.setEnabled(true);
                                                                             book.setVisibility(View.VISIBLE);
@@ -144,26 +145,53 @@ public class FinalViewActivity extends AppCompatActivity {
         String userId = auth.getCurrentUser().getUid();
         Log.println(Log.INFO, "Email", email);
         Log.println(Log.INFO, "User ID", userId);
-        db.collection("Scheduler")
+
+        // Query the "Slots" collection for the current user's ID
+        db.collection("Slots")
+                .document(userId)
                 .get()
-                .addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
+                .addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
                     @Override
-                    public void onComplete(@NonNull Task<QuerySnapshot> task) {
+                    public void onComplete(@NonNull Task<DocumentSnapshot> task) {
                         if (task.isSuccessful()) {
-                            DocumentSnapshot snapshot = task.getResult().getDocuments().get(0);
-                            schedule = new Scheduler();
-                            schedule.eachSlotTime = (long) snapshot.get("eachSlotTime");
-                            schedule.maxPeopleLimit = (long) snapshot.get("maxPeopleLimit");
-                            schedule.personPerSlot = (long) snapshot.get("personPerSlot");
-                            Log.d("schedule", "value eachSlotTime: " + schedule.eachSlotTime);
-                            Log.d("schedule", "value maxPeopleLimit: " + schedule.maxPeopleLimit);
-                            Log.d("schedule", "value personPerSlot: " + schedule.personPerSlot);
+                            DocumentSnapshot document = task.getResult();
+                            if (document.exists()) {
+                                // The user already has a slot
+                                Toast.makeText(FinalViewActivity.this, "You already have a slot.", Toast.LENGTH_SHORT).show();
+                                showAlertMessage("You already have a slot.");
+                            } else {
+                                // The user doesn't have a slot, create a new one
+                                db.collection("Slots")
+                                        .document(userId)
+                                        .set(new Slot("hello", email, userId), SetOptions.merge())
+                                        .addOnSuccessListener(new OnSuccessListener<Void>() {
+                                            @Override
+                                            public void onSuccess(Void aVoid) {
+                                                Log.d("createUser", "Document created successfully");
+                                                Toast.makeText(FinalViewActivity.this, "Slot created successfully.", Toast.LENGTH_SHORT).show();
+                                                showAlertMessage("Slot created successfully.");
+                                            }
+                                        })
+                                        .addOnFailureListener(new OnFailureListener() {
+                                            @Override
+                                            public void onFailure(@NonNull Exception e) {
+                                                Log.d("createUser", "Error creating document: ", e);
+                                                Toast.makeText(FinalViewActivity.this, "Failed to create slot.", Toast.LENGTH_SHORT).show();
+                                            }
+                                        });
+                            }
                         } else {
-                            Log.d("TAG", "Error getting documents: ", task.getException());
+                            Log.d("checkSlot", "Error getting document: ", task.getException());
                         }
                     }
                 });
     }
+    // Method to show the alert message in the "Alert" TextView
+    private void showAlertMessage(String message) {
+        TextView alertTextView = findViewById(R.id.alertBox); // Replace "R.id.Alert" with the actual ID of your TextView
+        alertTextView.setText(message);
+    }
+
 
     public class Slot {
         private String name;
